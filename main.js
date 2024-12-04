@@ -33,6 +33,13 @@ const scene = new THREE.Scene();
 const fireLight = new THREE.PointLight(0xff4500, 20, 60); 
 fireLight.position.set(4, 2, 0);
 scene.add(fireLight);
+const audio = document.getElementById('music');
+const hitSound = document.getElementById('hit');
+const growlSound = document.getElementById('growl');
+const deathSound = document.getElementById('death');
+const fireSound = document.getElementById('fire');
+audio.volume = 0.1;
+let firePlaying = false;
 
 {
 const loader = new THREE.TextureLoader();
@@ -90,6 +97,7 @@ const moveSpeed = 0.07;
 
 
 
+
 var playing = false;
 
 var flashlightOn = true;
@@ -143,7 +151,6 @@ function handleMouseMove(event) {
 
 var chargeStart = -1;
 function handleMouseUp(event) {
-
 
     if (snowballsLeft <= 0){
         return;
@@ -251,6 +258,8 @@ function createMaterial(usd, usdMaterial) {
 
 
 let keyPresses = {};
+let playAudio = false;
+let audioPlaying = false;
 
 document.addEventListener('keydown', (event) => {
       switch (event.code) {
@@ -261,6 +270,7 @@ document.addEventListener('keydown', (event) => {
         case 'ShiftLeft': movement.down = true; break;
         case 'ShiftRight': movement.down = true; break;
         case 'Space': movement.up = true; break;
+        case 'KeyP': playAudio = !playAudio; break;
       }
     });
 
@@ -435,6 +445,9 @@ function animateSnow() {
 }
 
 function makeEvil(sm){
+    if (audioPlaying){
+        growlSound.play()
+    }
     scene.remove(sm.mesh)
     sm.otherMesh = sm.mesh;
     sm.mesh = meshes.evilSnowman.clone();
@@ -595,10 +608,16 @@ function controlSnowball(s){
                 const dz = m.position.z-s.mesh.position.z;
                 if (Math.abs(dy) < 1 & dx*dx+dz*dz < 0.5){
                     sm.health-=1;
+                    if (audioPlaying){
+                        hitSound.play();
+                    }
                     if (sm.health <= 0){
                         if (sm.evil == false) {
                             makeEvil(sm);
                         } else {
+                            if (audioPlaying){
+                                deathSound.play();
+                            }
                             sm.deathTime = Date.now();
                             snowmenKilled += 1;
                             document.getElementById("snowmenKilled").innerHTML="Snowmen Eliminated: " + snowmenKilled;
@@ -611,12 +630,16 @@ function controlSnowball(s){
         }
 
         for (let i=0; i<statics.length; i+=1){
+            
             const sm = statics[i];
             let m = sm.mesh;
             const dx = m.position.x-s.mesh.position.x;
             const dy = m.position.y-s.mesh.position.y;
             const dz = m.position.z-s.mesh.position.z;
             if (Math.abs(dy) < 3 & dx*dx+dz*dz < statics[i].radius*statics[i].radius){
+                if (audioPlaying){
+                    hitSound.play();
+                }
                 scene.remove(s.mesh)
                 s.alive=false;
             }
@@ -625,6 +648,9 @@ function controlSnowball(s){
 
 
         if (s.mesh.position.y < -0.1){
+            if (audioPlaying){
+                hitSound.play();
+            }
             s.mesh.position.y = -10;
             scene.remove(s.mesh)
             s.alive=false;
@@ -696,6 +722,15 @@ function animate() {
     if (playerHealth <= 0){
         return
     }
+
+    if (!audioPlaying && playAudio){
+        audio.play();
+        audioPlaying = true;
+    } else if (audioPlaying && !playAudio){
+        audio.pause();
+        audioPlaying = false;
+    }
+
     const element = document.body;
     if (playing == false || document.pointerLockElement !== element) {
         document.getElementById("pause").style.visibility="visible";
@@ -710,7 +745,11 @@ function animate() {
         document.getElementById("fps").innerHTML = "FPS: " + Math.floor(iteration*1000/(Date.now()-lastFpsTime));
         iteration=0;
         lastFpsTime = Date.now();
+        
+        
     }
+
+
     iteration+=1;
 
     // Move the camera based on key input
@@ -785,6 +824,20 @@ function animate() {
         }
     }
 
+    if (audioPlaying){
+        if (camera.position.x*camera.position.x+camera.position.z*camera.position.z < 8*8){
+            if (!firePlaying){
+                fireSound.play()
+                firePlaying = true;
+            }
+        } else {
+            if (firePlaying){
+                fireSound.pause()
+                firePlaying = false;
+            }
+        }
+    }
+
     flashlightShake[0] += shakeFreq
     flashlightShake[1] += shakeFreq*0.8;
 
@@ -834,6 +887,7 @@ function animate() {
 makeCube(scene);
 
 (async () => {
+    
 
     const loadedMeshes = await loadAllUSDZFiles(USDZ_FILEPATHS);
 
