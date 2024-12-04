@@ -1,4 +1,8 @@
-import * as THREE from 'three';
+// import * as THREE from 'three';
+// import initTinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
+// import * as THREE from 'https://cdn.jsdelivr.net/npm/three@v0.149.0/build/three.module.js';
+// import * as TinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@v0.171.0/build/three.module.js';
 import initTinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
 
 
