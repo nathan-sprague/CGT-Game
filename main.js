@@ -1,9 +1,39 @@
-// import * as THREE from 'three';
+// import * as THREE from './three.module.js';
+// import * as THREE from 'https://cdn.jsdelivr.net/npm/three@v0.171.0/build/three.module.js';
+
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
 // import initTinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
-// import * as THREE from 'https://cdn.jsdelivr.net/npm/three@v0.149.0/build/three.module.js';
-// import * as TinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@v0.171.0/build/three.module.js';
-import initTinyUSDZ from 'https://lighttransport.github.io/tinyusdz/tinyusdz.js';
+
+import initTinyUSDZ from 'initTinyUSDZ';
+
+// import { EffectComposer } from 'https://unpkg.com/three@0.171.0/examples/jsm/postprocessing/EffectComposer.js';
+// import { RenderPass } from 'https://unpkg.com/three@0.171.0/examples/jsm/postprocessing/RenderPass.js';
+// import { ShaderPass } from 'https://unpkg.com/three@0.171.0/examples/jsm/postprocessing/ShaderPass.js';
+
+// import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/postprocessing/EffectComposer.js';
+// import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@v0.171.0/examples/jsm/postprocessing/RenderPass.js';
+// import { ShaderPass } from 'https://cdn.jsdelivr.net/npm/three@v0.171.0/examples/jsm/postprocessing/ShaderPass.js';
+
+
+try {
+
+    const canvas = document.createElement( 'canvas' );
+    if (!! window.WebGL2RenderingContext && canvas.getContext( 'webgl2' ) ){
+        // console.log("okay")
+    } else{
+        alert("WebGL doesnt work")
+    }
+
+} catch ( e ) {
+
+    alert("web GL doesnt work")
+
+}
+
 
 
 // const USDZ_FILEPATHS = ['./Snowman.usdz','./snowman_evil.usdz'];
@@ -11,6 +41,14 @@ const USDZ_FILEPATHS = ['./tree.usdz', './Snowman.usdz','./snowman_evil.usdz', '
 // const USDZ_FILEPATHS = ['./fire.usdz', './flames.usdz'];
 // const USDZ_FILEPATHS = [];
 // const scene = new THREE.Scene();
+
+// localStorage.removeItem("highscore");
+// localStorage.clear();
+
+let highScore = localStorage.getItem("highscore");
+if (highScore == null){
+    highScore = 0;
+}
 
 const scene = new THREE.Scene();
 {
@@ -29,6 +67,8 @@ const scene = new THREE.Scene();
 
     // const intensity = 0;
 }
+
+
 
 const fireLight = new THREE.PointLight(0xff4500, 20, 60); 
 fireLight.position.set(4, 2, 0);
@@ -90,6 +130,36 @@ scene.add(flashlight.target);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// Custom shader for red tint
+const RedTintShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tint: { value: new THREE.Vector3(1.0, 0.0, 0.0) }, // RGB tint values
+    },
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec3 tint;
+        varying vec2 vUv;
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            color.rgb += tint * 0.3; // Apply the red tint
+            gl_FragColor = color;
+        }
+    `,
+};
+const redTintPass = new ShaderPass(RedTintShader);
+composer.addPass(redTintPass);
 
 
 const movement = { forward: false, backward: false, left: false, right: false , up: false, down: false};
@@ -529,10 +599,14 @@ function controlSnowman(s, snowmanNum){
         if (Date.now()-s.targetTime > 20000){ // taking > 20 seconds to get to target
             s.target = getRandomSpot();
             s.targetTime = Date.now();
-        }
-        if (m.position.x*m.position.x+m.position.z*m.position.z < 7*7){
-            s.target = getRandomSpot();
+        } 
+        const ddx = m.position.x-4;
+        const ddz = m.position.z;
+        if (ddx*ddx+ddz*ddz < 4*4){
+            s.target = [(m.position.x-4)*2, m.position.z*2];
             s.targetTime = Date.now();
+            turnSpeed = 0.2;
+            moveSpeed = 0.001;
         }
         const dx = camera.position.x-m.position.x;
         const dz = camera.position.z-m.position.z;
@@ -557,17 +631,26 @@ function controlSnowman(s, snowmanNum){
     const dy = m.position.z-s.target[1]
     const distance = Math.sqrt(dx*dx+dy*dy)
     if (distance < 1 && s.evil == false){
-            s.target = getRandomSpot();
-            s.targetTime = Date.now();
+        s.target = getRandomSpot();
+        s.targetTime = Date.now();
     } else if (distance < 1.5 && s.evil) {
         if (Date.now()-s.lastHit > 500){
             playerHealth -= 10;
             camera.position.y=1.2;
+            lastHitTime = Date.now();
 
             document.getElementById("health").innerHTML = playerHealth;
             if (playerHealth <= 0){
-                // window.location.href ="./index.html"
                 document.getElementById("youLose").style.visibility="visible";
+                if (snowmenKilled > highScore){
+                    document.getElementById("youLose").value = "New High Score! " + snowmenKilled + " was " + highScore;
+                    localStorage.setItem("highscore", snowmenKilled);
+                    console.log("new high score", highScore);
+                } else {
+                    document.getElementById("youLose").value = "You lose! High score: " + highScore;
+
+                    console.log("not high score", highScore, snowmenKilled)
+                }
 
                 const element = document.body;
                 if (document.pointerLockElement === element) {
@@ -710,7 +793,7 @@ function handleCollision(movingCircle, stationaryCircle, velocity) {
 }
 
 
-
+var lastHitTime = 0;
 var lastFpsTime = Date.now();
 var lastSnowmanTime = Date.now();
 var iteration = 0;
@@ -881,9 +964,13 @@ function animate() {
         flashlight.intensity = 10 * (1+Math.sin(Date.now()/2000))/2+10;
     }
 
-    renderer.render(scene, camera);
+    if (Date.now()-lastHitTime < 1000){
+        composer.render();
+    } else {
+        renderer.render(scene, camera);
+    
     }
-
+}
 makeCube(scene);
 
 (async () => {

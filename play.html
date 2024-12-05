@@ -62,12 +62,22 @@
         </div>
 
         <input  type="button" id="youLose" onclick="window.location.href = './index.html';"
-        style="position: absolute; left: calc(50% - 400px); width:800px; top: calc(50% - 240px); height: 120px; background-color: rgb(255,100,100); font-size: 100px; text-align: center; visibility: hidden;" value="You Lose!">
+        style="position: absolute; left: calc(50% - 400px); width:800px; top: calc(50% - 240px); height: 120px; background-color: rgb(255,100,100); font-size: 40px; text-align: center; visibility: hidden;" value="You Lose!">
 
         <div id="pause" style="position: absolute; left: calc(50% - 400px); width:800px; top: calc(50% - 240px); height: 120px; background-color: rgb(100,255,100); font-size: 100px; text-align: center; visibility: hidden;">Click to Start</div>
 
         <input type="button" id="back" onclick="window.location.href = './index.html';"
         style="position: absolute; width:400px; height: 120px; background-color: rgb(255,100,100); font-size: 80px; text-align: center; visibility: hidden;" value="Back">
+
+        <script type="importmap">
+          {
+            "imports": {
+              "three": "https://cdn.jsdelivr.net/npm/three@v0.171.0/build/three.module.js",
+              "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/",
+              "initTinyUSDZ": "https://lighttransport.github.io/tinyusdz/tinyusdz.js"
+            }
+          }
+        </script>
 
         <script type="module" src="./main.js"></script>
 
